@@ -63,6 +63,46 @@
 #define SOLUTION_STACKMAT_2 { }
 #endif
 
+void computec1(int* c1, int* a, int* b, int len) {
+    for (int i = 0; i < len; ++i) {
+        c1[i] = a[i] + b[i];
+    }
+}
+
+int* computec2(int* a, int* b, int len) {
+    int* c2 = (int*)malloc(len * sizeof(int));
+    for (int i = 0; i < len; ++i) {
+        c2[i] = a[i] + b[i];
+    }
+    return c2;
+}
+
+/* int* computeCstack(int* a, int* b, int len) {
+    int c[len];
+    for (int i = 0; i < len; ++i) {
+        c[i] = a[i] + b[i];
+    }
+    return c;
+} */
+
+void computeC1(int* C1, int* A, int* B) {
+    for (int i = 0; i < N; i++)
+        for (int j = 0; j < M; j++) {
+            int ij = i * M + j;
+            C1[ij] = A[ij] + B[ij];
+        }
+}
+
+int* computeC2(int* A, int* B) {
+    int* C2 = (int*)malloc(N * M * sizeof(int));
+    for (int i = 0; i < N; i++)
+        for (int j = 0; j < M; j++) {
+            int ij = i * M + j;
+            C2[ij] = A[ij] + B[ij];
+        }
+    return C2;
+}
+
 int main(void) {
     // ---------- for timing ----------
     float CPU_times[NPROBS];
@@ -86,11 +126,15 @@ int main(void) {
         SOLUTION_STACKVEC_1
         PRINT_RESULT_VECTOR(c, "c")
 #else
-        /* |========================================| */
-        /* |           Put here your code           | */
-        /* |========================================| */
-
-
+    int a[LEN];
+    int b[LEN];
+    int c[LEN];
+    for (int i = 0; i < LEN; ++i) {
+        a[i] = i;
+        b[i] = 100 * i;
+        c[i] = a[i] + b[i];
+    }
+    PRINT_RESULT_VECTOR(c, "c");
 #endif
     // ---------------------- Heap vectors 1 -----------------------
     /* Compute the same result as c but in a heap vector c1 allocated
@@ -100,10 +144,10 @@ int main(void) {
     SOLUTION_HEAPVEC_1
     PRINT_RESULT_VECTOR(c1, "c1")
 #else
-        /* |========================================| */
-        /* |           Put here your code           | */
-        /* |========================================| */
-
+    int* c1 = (int*)malloc(LEN * sizeof(int));
+    computec1(c1, a, b, LEN);
+    PRINT_RESULT_VECTOR(c1, "c1");
+    free(c1);
 
 #endif
     // ---------------------- Heap vectors 2 -----------------------
@@ -114,9 +158,9 @@ int main(void) {
     SOLUTION_HEAPVEC_2
     PRINT_RESULT_VECTOR(c2, "c2")
 #else
-        /* |========================================| */
-        /* |           Put here your code           | */
-        /* |========================================| */
+    int* c2 = computec2(a, b, LEN);
+    PRINT_RESULT_VECTOR(c2, "c2");
+    free(c2);
 
 
 #endif
@@ -127,10 +171,8 @@ int main(void) {
 #ifdef RESULTS
     SOLUTION_STACKVEC_2
 #else
-        /* |========================================| */
-        /* |           Put here your code           | */
-        /* |========================================| */
-
+    // int* cStack = computeCstack(a, b, LEN);
+    // PRINT_RESULT_VECTOR(c2, "cStack");
 
 #endif
 
@@ -149,10 +191,17 @@ int main(void) {
         SOLUTION_STACKMAT_1
         PRINT_RESULT_MATRIX(((int*)C), "C")
 #else
-        /* |========================================| */
-        /* |           Put here your code           | */
-        /* |========================================| */
-
+    int A[N * M];
+    int B[N * M];
+    int C[N * M];
+    for (int i = 0; i < N; i++)
+        for (int j = 0; j < M; j++) {
+            int ij = i * M + j;
+            A[ij] = i + j;
+            B[ij] = (i + j) * 100;
+            C[ij] = A[ij] + B[ij];
+        }
+    PRINT_RESULT_MATRIX(((int*)C), "C")
 
 #endif
 
@@ -161,10 +210,10 @@ int main(void) {
         SOLUTION_HEAPMAT_1
         PRINT_RESULT_MATRIX(C1, "C1")
 #else
-        /* |========================================| */
-        /* |           Put here your code           | */
-        /* |========================================| */
-
+    int* C1 = (int*)malloc(N * M * sizeof(int));
+    computeC1(C1, A, B);
+    PRINT_RESULT_MATRIX(C1, "C1");
+    free(C1);
 
 #endif
 
@@ -173,10 +222,9 @@ int main(void) {
         SOLUTION_HEAPMAT_2
         PRINT_RESULT_MATRIX(C2, "C2")
 #else
-        /* |========================================| */
-        /* |           Put here your code           | */
-        /* |========================================| */
-
+    int* C2 = computeC2(A, B);
+    PRINT_RESULT_MATRIX(C2, "C2");
+    free(C2);
 
 #endif
 
@@ -184,9 +232,7 @@ int main(void) {
 #ifdef RESULTS
         SOLUTION_STACKMAT_2
 #else
-        /* |========================================| */
-        /* |           Put here your code           | */
-        /* |========================================| */
+   
 
 
 #endif

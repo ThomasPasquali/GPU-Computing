@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <math.h>
+#include <sys/time.h>
 
 #include "include/lab1_ex2_lib.h"
 // NOTE: dtype is a macro type defined in 'include/lab1_ex2_lib.h'
@@ -50,11 +51,25 @@ int main(int argc, char *argv[]) {
 #ifdef RESULTS
     EX2_SOLUTION
 #else
-        /* |========================================| */
-        /* |           Put here your code           | */
-        /* |========================================| */
+    //len = (int)pow(2.0, (double)n);
+    len = 1; for (int i = 0; i < n; ++i) len *= 2;
+    printf("len: %d\n", len);
+    a = malloc(len * sizeof(dtype));
+    b = malloc(len * sizeof(dtype));
+    c = malloc(len * sizeof(dtype));
 
+    srand(time(NULL));
+    for(int i = 0; i < len; ++i) {
+        a[i] = rand()/(1<<11);
+        b[i] = rand()/(1<<11);
+    }
 
+    struct timeval stop, start;
+    gettimeofday(&start, NULL);
+    
+    for(int i = 0; i < len; ++i) {
+        c[i] = a[i] + b[i];
+    }
 
 #endif
 
@@ -74,9 +89,15 @@ int main(int argc, char *argv[]) {
     sigma_b = sigma_fn_sol(b, mu_b, len);
     sigma_c = sigma_fn_sol(c, mu_c, len);
 #else
-        /* |========================================| */
-        /* |           Put here your code           | */
-        /* |========================================| */
+    mu_a = mu_fn(a, len);
+    mu_b = mu_fn(b, len);
+    mu_c = mu_fn(c, len);
+    sigma_a = sigma_fn(a, mu_a, len);
+    sigma_b = sigma_fn(b, mu_b, len);
+    sigma_c = sigma_fn(c, mu_c, len);
+    
+    gettimeofday(&stop, NULL);
+    printf("Time elapsed: %lu us\n", ((stop.tv_sec - start.tv_sec) * 1e6 + stop.tv_usec - start.tv_usec));
 
 #endif
 
@@ -87,6 +108,10 @@ int main(int argc, char *argv[]) {
 
     char* mu_test = ((fabs(mu_a + mu_b - mu_c) < 0.001) && mu_c != 0.0)? "\x1B[32mDONE!\x1B[37m" : "\x1B[31mERROR!\x1B[37m";
     printf("\nMEAN TEST (|mu(c) - (mu(a) + mu(b))| < 0.001?): \t %s\n", mu_test);
+
+    free(a);
+    free(b);
+    free(c);
 
     return(0);
 }
