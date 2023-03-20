@@ -171,6 +171,49 @@ void print_DN (vtype* A, int n, int m) {
     return;
 }
 
+vtype* densification(CSR* M) {
+    vtype* dn_M = calloc(M->n * M->m, sizeof(vtype));
+    int r = 0, c = 0, count, i;
+    while (r <= M->n) {
+        count = M->row[i+1] - M->row[i];
+        for (i = 0; i < count; ++i) {
+            dn_M[r * M->n + M->col[c]] = M->val[c++];
+        }
+    }
+    return dn_M;
+}
+
+vtype* sparsification(vtype* M, int n, int m) {
+    CSR* A = (CSR*)malloc(sizeof(CSR));
+    A->n = n; A->m = m;
+    A->row = (itype*)malloc(sizeof(itype)*(n + 1));
+    A->row[0] = 0;
+
+    int nnz = 0;
+    for (int r = 0; r < n; ++r)
+        for (int c = 0; c < m; ++c)
+            if (M[r * n + c] != 0)
+                ++nnz;
+
+    A->nnz = nnz;
+    A->col = (itype*)malloc(sizeof(itype)*(nnz));
+    A->val = (itype*)malloc(sizeof(itype)*(nnz));
+    nnz = 0;
+    int i = 0;
+    for (int r = 0; r < n; ++r) {
+        for (int c = 0; c < m; ++c) {
+            if (M[r * n + c] != 0) {
+                A->col[i] = c;
+                A->val[i++] = M[r * n + c];
+                ++nnz;
+            }
+        }
+        A->row[r] = nnz;
+    }
+
+    return A;
+}
+
 int main (int argc, char *argv[]) {
 
     if (argc < 3) {
@@ -192,11 +235,8 @@ int main (int argc, char *argv[]) {
 #ifdef RESULTS
     EX3_SOLUTION
 #else
-        /* |========================================| */
-        /* |           Put here your code           | */
-        /* |========================================| */
-
-
+    dn_A = densification(A);
+    ck_A = sparsification(dn_A, n, m);
 
 #endif
 
