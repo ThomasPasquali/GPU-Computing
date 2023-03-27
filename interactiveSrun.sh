@@ -1,0 +1,1 @@
+srun --ntasks=1 --nodes=1 --partition=edu5 --cpus-per-task=1 --gres=gpu:1 --pty bash

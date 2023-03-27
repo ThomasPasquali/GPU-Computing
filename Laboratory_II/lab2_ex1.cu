@@ -24,10 +24,10 @@
 #define dtype float
 
 // #include "../solutions/lab2_sol.cu"
-#define RUN_SOLUTIONS
+// #define RUN_SOLUTIONS
 
-#define BLK_SIZE 32
-#define GRD_SIZE 2
+size_t BLK_SIZE = 32;
+size_t GRD_SIZE = 2;
 
 __device__ uint get_smid(void) {
 
@@ -56,17 +56,33 @@ void example_kernel(int n, dtype *a, dtype* b, dtype* c)
             /* |         Put here your kernels          | */
             /* |========================================| */
 
+__global__ void device_sum_v1(int n, dtype *a, dtype* b, dtype* c) {
+  // if (threadIdx.x==0) printf("V1 block %d runs on sm %d\n", blockIdx.x, get_smid());
+  size_t tid = blockDim.x * blockIdx.x + threadIdx.x;
+  size_t k = blockDim.x * gridDim.x;
+  while (tid < n) {
+    c[tid] = a[tid] + b[tid];
+    tid += k;
+  }
+}
 
-
-
-
-
+__global__ void device_sum_v2(int n, dtype *a, dtype* b, dtype* c) {
+  //if (threadIdx.x==0) printf("V2 block %d runs on sm %d\n", blockIdx.x, get_smid());
+  size_t i = blockDim.x * blockIdx.x + threadIdx.x;
+  size_t k = blockDim.x * gridDim.x;
+  size_t its = n / k - 1, count = 0;
+  while (count < its && i < n) {
+    c[i] = a[i] + b[i];
+    ++count;
+    ++i;
+  }
+}
 #endif
 
 
 
 int main(int argc, char *argv[]) {
-
+  
   // ======================================== Get the device properties ========================================
   printf("======================================= Device properties ========================================\n");
 
@@ -88,9 +104,12 @@ int main(int argc, char *argv[]) {
             /* |========================================| */
             /* |           Put here your code           | */
             /* |========================================| */
-
-
-
+  int dev = 0;
+  cudaSetDevice(dev);
+  cudaDeviceProp deviceProp;
+  cudaGetDeviceProperties(&deviceProp, dev);
+  printf("Memory Clock rate: %.0f Mhz\n", deviceProp.memoryClockRate * 1e-3f);
+  printf("Memory Bus Width: %d-bit\n", deviceProp.memoryBusWidth);
 
 #endif
 
@@ -109,7 +128,6 @@ int main(int argc, char *argv[]) {
 
   printf("n = %d --> len = 2^(n) = %d\n", n, len);
   printf("dtype = %s\n", XSTR(dtype));
-
 
   // ------------------ set-up the timers ---------------------
 
@@ -204,28 +222,26 @@ int main(int argc, char *argv[]) {
   checkCudaErrors( cudaMalloc(&dev_b, len*sizeof(dtype)) );
   checkCudaErrors( cudaMalloc(&dev_c, len*sizeof(dtype)) );
 
-
 #ifdef RUN_SOLUTIONS
 
 #else
             /* |========================================| */
             /* | Put here your code for solve Problem 1 | */
             /* |========================================| */
+  printf("len: %d\nblk_size: %d\ngrd_size: %d\n", len, BLK_SIZE, GRD_SIZE);
 
   // ------------ copy date from host to device --------------
-
-
+  cudaMemcpy(dev_a, a, len * sizeof(dtype), cudaMemcpyHostToDevice);
+  cudaMemcpy(dev_b, b, len * sizeof(dtype), cudaMemcpyHostToDevice);
 
   // ------------ computation solution with Layout 1 -----------
   TIMER_START;
-
-
+  device_sum_v1<<<GRD_SIZE, BLK_SIZE>>>(len, dev_a, dev_b, dev_c);
   checkCudaErrors( cudaDeviceSynchronize() );
   TIMER_STOP;
   Times[1] += TIMER_ELAPSED;
   // ----------- copy results from device to host ------------
-
-
+  cudaMemcpy(GPU_c, dev_c, len * sizeof(dtype), cudaMemcpyDeviceToHost);
 
 #endif
 
@@ -254,15 +270,12 @@ int main(int argc, char *argv[]) {
 
   // ------------ computation solution with Layout 2 -----------
   TIMER_START;
-
-
-
+  device_sum_v2<<<GRD_SIZE, BLK_SIZE>>>(len, dev_a, dev_b, dev_c); 
   checkCudaErrors( cudaDeviceSynchronize() );
   TIMER_STOP;
   Times[2] += TIMER_ELAPSED;
   // ------------ copy results from device to host -------------
-
-
+  cudaMemcpy(GPU_c, dev_c, len * sizeof(dtype), cudaMemcpyDeviceToHost);
 
 #endif
 
@@ -292,7 +305,7 @@ int main(int argc, char *argv[]) {
 #endif
   printf("Solution type\terror\ttime\n");
   for (int i=0; i<NPROBS; i++) {
-    printf("%12s:\t%5.3f\t%5.3f\n", lables[i], errors[i], Times[i]);
+    printf("%12s:\t%5.3f\t%5.5f\n", lables[i], errors[i], Times[i]);
   }
   printf("\n");
 
@@ -301,8 +314,9 @@ int main(int argc, char *argv[]) {
 
 #else
   // Print here your Memory Bandwidth an the Throughput of both the GPU computations
-
-
+  printf("Ideal Memory Bandwidth: %5u B/s\n", (uint)((deviceProp.memoryClockRate * deviceProp.memoryBusWidth) << 2));
+  // printf("Memory Bandwidth for V1: %5u B/s\n", (uint)(((uint)(len * sizeof(dtype)) / Times[1])));
+  // printf("Memory Bandwidth for V2: %5u B/s\n", (uint)(((uint)(len * sizeof(dtype)) / Times[2])));
 
 #endif
 
@@ -324,9 +338,6 @@ int main(int argc, char *argv[]) {
    *  Note: since we are here not interested in the memory performance and checking again if the results are
    *    correct, copy the vectors a and b on the GPU only the first time and don't copy back the results of c.
    */
-
-
-
   checkCudaErrors( cudaMalloc(&dev_a, len*sizeof(dtype)) );
   checkCudaErrors( cudaMalloc(&dev_b, len*sizeof(dtype)) );
   checkCudaErrors( cudaMalloc(&dev_c, len*sizeof(dtype)) );
@@ -342,8 +353,29 @@ int main(int argc, char *argv[]) {
           /* |========================================| */
           /* |           Put here your code           | */
           /* |========================================| */
-
-
+  
+  int grds[6] = {1, 3, 7, 14, 28, 56};
+  int blks_n = 6;
+  float T;
+  BLK_SIZE = 32;
+  printf("     ");
+  for (int i = 0; i < blks_n; ++i) {
+    printf("%7d ", grds[i]);
+  }
+  for (int i = 0; i < blks_n - 1; ++i) {
+    BLK_SIZE <<= 1;
+    printf("\n%6d ", BLK_SIZE);
+    for (int j = 0; j < blks_n; ++j) {
+      GRD_SIZE = grds[j];
+      TIMER_START;
+      device_sum_v1<<<GRD_SIZE, BLK_SIZE>>>(len, dev_a, dev_b, dev_c); 
+      checkCudaErrors( cudaDeviceSynchronize() );
+      TIMER_STOP;
+      T = TIMER_ELAPSED;
+      printf("%1.5f ", T);
+    }
+  }
+  printf("\n");
 
 
 #endif
